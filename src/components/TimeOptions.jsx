@@ -9,7 +9,7 @@ const TimeOptions = ({ selectedAmount, selectTime }) => {
   const times = [
     {
       label: "1 Saac",
-      amount: "$0.10",
+      amount: "$0.50",
       icon: (
         <svg
           className="w-12 h-12 mx-auto mb-2 text-pink-500"

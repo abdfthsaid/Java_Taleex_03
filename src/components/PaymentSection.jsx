@@ -6,43 +6,62 @@ import ProcessingModal from "./ProcessingModal";
 const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
   const [showProcessing, setShowProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("processing");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [reason, setReason] = useState("");
+  const [batteryInfo, setBatteryInfo] = useState(null);
+
   const [phone, setPhone] = useState("");
   const [agree1, setAgree1] = useState(false);
   const [agree2, setAgree2] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handlePayment = async () => {
-    const number = phone;
-    const amount = parseFloat(selectedAmount.replace("$", ""));
+ const handlePayment = async () => {
+  const number = phone;
+  const amount = parseFloat(selectedAmount.replace("$", ""));
+  let isSuccess = false;
 
-    try {
-      const res = await axios.post("https://danabbackend.onrender.com/api/pay/03", {
-        phoneNumber: number,
-        amount: amount,
-      });
+  try {
+    const res = await axios.post("https://danabbackend.onrender.com/api/pay/03", {
+      phoneNumber: number,
+      amount: amount,
+    });
 
-      console.log("Payment response:", res.data);
+    const data = res.data;
+
+    if (data.success === false && data.reason === "no_battery") {
+      setProcessingStatus("failed");
+      setReason("no_battery");
+      setErrorMessage(data.message);
+    } else if (data.success === true) {
       setProcessingStatus("success");
-
-      setTimeout(() => {
-        setPhone("");
-        setAgree1(false);
-        setAgree2(false);
-        setErrors({});
-        selectMethod(null);
-        setShowProcessing(false);
-        setProcessingStatus("processing");
-      }, 3000);
-    } catch (err) {
-      console.error("Payment failed:", err.response?.data || err.message);
-      setProcessingStatus("error");
-
-      setTimeout(() => {
-        setShowProcessing(false);
-        setProcessingStatus("processing");
-      }, 3000);
+      setBatteryInfo({ battery_id: data.battery_id, slot_id: data.slot_id });
+      isSuccess = true;
+    } else {
+      setProcessingStatus("failed");
+      setErrorMessage("Payment not approved");
     }
-  };
+  } catch (err) {
+    console.error("Payment failed:", err.response?.data || err.message);
+    setProcessingStatus("failed");
+    setErrorMessage(err.response?.data?.error || "Payment failed");
+  }
+
+  if (isSuccess) {
+    setTimeout(() => {
+      setShowProcessing(false);
+      setProcessingStatus("processing");
+      setReason("");
+      setErrorMessage("");
+      setBatteryInfo(null);
+      setPhone("");
+      setAgree1(false);
+      setAgree2(false);
+      setErrors({});
+      selectMethod(null);
+    }, 3000);
+  }
+};
+
 
   const isActiveMethod = (method) => selectedMethod === method;
 
@@ -61,18 +80,12 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
   };
 
   const getplaceholders_Input = () => {
-    if (selectedMethod === "EVC Plus") {
-      return "61 xxxxx";
-    } else if (selectedMethod === "ZAAD") {
-      return "63 xxxxx";
-    } else if (selectedMethod === "SAHAL") {
-      return "37 xxxxx";
-    } else {
-      return "Telefoon Numberka"; // default placeholder if none selected
-    }
+    if (selectedMethod === "EVC Plus") return "61 xxxxx";
+    if (selectedMethod === "ZAAD") return "63 xxxxx";
+    if (selectedMethod === "SAHAL") return "37 xxxxx";
+    return "Telefoon Numberka";
   };
 
-  // console.log("Selected Method:", selectedMethod);
   const handlePay = () => {
     const validationErrors = validate();
     setErrors(validationErrors);
@@ -89,6 +102,9 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
       {showProcessing && (
         <ProcessingModal
           status={processingStatus}
+          errorMessage={errorMessage}
+          reason={reason}
+          batteryInfo={batteryInfo}
           onClose={() => setShowProcessing(false)}
         />
       )}
@@ -154,7 +170,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
           />
         </div>
         {errors.phone && (
-          <p className="ml-3 mt-1 text-xs text-red-500">{errors.phone}</p>
+          <p className="mt-1 ml-3 text-xs text-red-500">{errors.phone}</p>
         )}
         <label className="flex items-center mt-3 ml-3 mr-3 text-xs text-gray-600 dark:text-gray-400">
           Fadlan Gali Numberka lacagta la Dirayo
@@ -192,7 +208,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
           Qofkale shuruudaha iyo xeerarka isticmaala Danab
           {errors.agree2 && (
-            <p className="text-xs text-red-500 mt-1">{errors.agree2}</p>
+            <p className="mt-1 text-xs text-red-500">{errors.agree2}</p>
           )}
         </span>
       </div>

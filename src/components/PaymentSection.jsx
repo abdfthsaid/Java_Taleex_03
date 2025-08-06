@@ -11,57 +11,62 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
   const [batteryInfo, setBatteryInfo] = useState(null);
 
   const [phone, setPhone] = useState("");
-  const [agree1, setAgree1] = useState(false);
-  const [agree2, setAgree2] = useState(false);
+  const [agree1, setAgree1] = useState(true);
+ 
   const [errors, setErrors] = useState({});
 
- const handlePayment = async () => {
-  const number = phone;
-  const amount = parseFloat(selectedAmount.replace("$", ""));
-  let isSuccess = false;
+  const handlePayment = async () => {
+    const number = phone;
+    const amount = parseFloat(selectedAmount.replace("$", ""));
+    let isSuccess = false;
 
-  try {
-    const res = await axios.post("https://phase2backeend-ptsd.onrender.com/api/pay/03", {
-      phoneNumber: number,
-      amount: amount,
-    });
+    try {
+      const res = await axios.post(
+        "https://danabbackend.onrender.com/api/pay/03",
+        {
+          phoneNumber: number,
+          amount: amount,
+        },
+        {
+          validateStatus: () => true, // Prevent axios from throwing error on 400/500
+        }
+      );
 
-    const data = res.data;
+      const data = res.data;
 
-    if (data.success === false && data.reason === "no_battery") {
+      if (res.status === 200 && data.success === true) {
+        setProcessingStatus("success");
+        setBatteryInfo({ battery_id: data.battery_id, slot_id: data.slot_id });
+        isSuccess = true;
+      } else if (data.success === false && data.reason === "no_battery") {
+        setProcessingStatus("failed");
+        setReason("no_battery");
+        setErrorMessage(data.message);
+      } else {
+        setProcessingStatus("failed");
+        setErrorMessage(data.message || "Payment not approved");
+      }
+    } catch (err) {
+      // Catch block will rarely be triggered now unless there is a network failure
       setProcessingStatus("failed");
-      setReason("no_battery");
-      setErrorMessage(data.message);
-    } else if (data.success === true) {
-      setProcessingStatus("success");
-      setBatteryInfo({ battery_id: data.battery_id, slot_id: data.slot_id });
-      isSuccess = true;
-    } else {
-      setProcessingStatus("failed");
-      setErrorMessage("Payment not approved");
+      setErrorMessage("Network error, please try again.");
     }
-  } catch (err) {
-    
-    setProcessingStatus("failed");
-    setErrorMessage(err.response?.data?.error || "Payment failed");
-  }
 
-  if (isSuccess) {
-    setTimeout(() => {
-      setShowProcessing(false);
-      setProcessingStatus("processing");
-      setReason("");
-      setErrorMessage("");
-      setBatteryInfo(null);
-      setPhone("");
-      setAgree1(false);
-      setAgree2(false);
-      setErrors({});
-      selectMethod(null);
-    }, 3000);
-  }
-};
-
+    if (isSuccess) {
+      setTimeout(() => {
+        setShowProcessing(false);
+        setProcessingStatus("processing");
+        setReason("");
+        setErrorMessage("");
+        setBatteryInfo(null);
+        setPhone("");
+        setAgree1(false);
+      
+        setErrors({});
+        selectMethod(null);
+      }, 3000);
+    }
+  };
 
   const isActiveMethod = (method) => selectedMethod === method;
 
@@ -73,9 +78,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
     if (!agree1) {
       newErrors.agree1 = "Fadlan ogolow shuruudaha koowaad";
     }
-    if (!agree2) {
-      newErrors.agree2 = "Fadlan ogolow shuruudaha labaad";
-    }
+  
     return newErrors;
   };
 
@@ -198,7 +201,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
         </div>
       </div>
 
-      <div className="flex items-start mt-5 ml-3 mr-3 space-x-2">
+      {/* <div className="flex items-start mt-5 ml-3 mr-3 space-x-2">
         <input
           type="checkbox"
           checked={agree2}
@@ -211,7 +214,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
             <p className="mt-1 text-xs text-red-500">{errors.agree2}</p>
           )}
         </span>
-      </div>
+      </div> */}
 
       {/* Pay Button */}
       <div className="ml-3 mr-3">
@@ -228,4 +231,3 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
 };
 
 export default PaymentSection;
-// This code is a React component for a payment section in a web application. It allows users

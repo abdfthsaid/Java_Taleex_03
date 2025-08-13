@@ -1,203 +1,150 @@
-// import { useEffect } from "react";
-// import { FaRegCreditCard } from "react-icons/fa";
-// import { MdCheckCircle, MdError } from "react-icons/md";
 
-// function ErrorMessage({ color, title, children }) {
-//   // Midabka icon-ka iyo cinwaanka (h2)
-//   const iconColor = color === "red" ? "text-red-500" : "text-yellow-500";
-//   const titleColor = color === "red" ? "text-red-600" : "text-yellow-600";
-
-//   return (
-//     <>
-//       <MdError className={`mx-auto mb-3 text-5xl ${iconColor}`} />
-//       <h2 className={`mb-2 text-xl font-semibold ${titleColor}`}>
-//         {title}
-//       </h2>
-//       {children && (
-//         <p className="mb-4 text-sm text-gray-500">
-//           {children}
-//         </p>
-//       )}
-//     </>
-//   );
-// }
-
-// export default function ProcessingModal({
-//   status = "processing",
-//   errorMessage,
-//   reason,
-//   batteryInfo,
-//   onClose,
-// }) {
-//   useEffect(() => {
-//     if (reason === "no_battery") {
-//       const timer = setTimeout(() => {
-//         onClose();
-//       }, 2000);
-//       return () => clearTimeout(timer);
-//     }
-//   }, [reason, onClose]);
-
-//   const renderContent = () => {
-//     if (status === "processing") {
-//       return (
-//         <>
-//           <h2 className="mb-2 text-xl font-semibold text-gray-800">
-//             Processing Payment
-//           </h2>
-//           <p className="mb-6 text-sm text-gray-400">
-//             Please wait while we process your payment...
-//           </p>
-//           <div className="flex items-center justify-center">
-//             <div className="w-16 h-16 border-4 border-purple-500 rounded-full animate-spin border-t-transparent">
-//               <FaRegCreditCard className="mx-auto my-3 text-2xl text-purple-500" />
-//             </div>
-//           </div>
-//         </>
-//       );
-//     }
-
-//     if (status === "success") {
-//       return (
-//         <>
-//           <MdCheckCircle className="mx-auto mb-3 text-5xl text-green-500" />
-//           <h2 className="mb-2 text-xl font-semibold text-green-600">Success</h2>
-//           <p className="mb-2 text-sm text-gray-500">
-//             Payment completed successfully!
-//           </p>
-//           {batteryInfo && (
-//             <p className="text-sm text-gray-600">
-//               🔓 Battery <strong>{batteryInfo.battery_id}</strong> unlocked from Slot{" "}
-//               <strong>{batteryInfo.slot_id}</strong>.
-//             </p>
-//           )}
-//         </>
-//       );
-//     }
-
-//     // Halkan waxaan isticmaalnaa ErrorMessage component-ka
-//     return errorMessage === "no_battery" ? (
-//       <ErrorMessage color="yellow" title="Ma jiro baytari diyaar ah">
-//         Waqtigan la joogo ma jiro powerbank buuxa oo ≥ 60%. Fadlan isku day mar dambe.
-//       </ErrorMessage>
-//     ) : (
-//       <ErrorMessage color="red" title="Payment Failed">
-//         {errorMessage || "Something went wrong. Try again."}
-//       </ErrorMessage>
-//     );
-//   };
-
-//   return (
-//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-//       <div className="bg-white w-[90%] max-w-sm p-6 rounded-xl shadow-lg relative text-center">
-//         <button
-//           className="absolute text-xl text-gray-500 top-3 right-3 hover:text-black"
-//           onClick={onClose}
-//         >
-//           &times;
-//         </button>
-//         {renderContent()}
-//       </div>
-//     </div>
-//   );
-// }
 
 import { useEffect } from "react";
 import { FaRegCreditCard } from "react-icons/fa";
 import { MdCheckCircle, MdError } from "react-icons/md";
 
-export default function ProcessingModal({
+const ProcessingModal = ({
   status = "processing",
   errorMessage,
+  reason,
   batteryInfo,
   onClose,
-}) {
-  // ⏱️ Auto-close if it's the "no battery" error
+}) => {
+  // Auto-close for battery-related errors
   useEffect(() => {
-    if (errorMessage === "No available battery ≥ 60%") {
+    if (reason === "NO_BATTERY_AVAILABLE" || reason === "no_battery") {
       const timer = setTimeout(() => {
         onClose();
-      }, 2000); // 2 seconds
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [errorMessage, onClose]);
+  }, [reason, onClose]);
 
-  const renderContent = () => {
-    if (status === "processing") {
-      return (
-        <>
-          <h2 className="mb-2 text-xl font-semibold text-gray-800">
-            Processing Payment
-          </h2>
-          <p className="mb-6 text-sm text-gray-400">
-            Please wait while we process your payment...
-          </p>
-          <div className="flex items-center justify-center">
-            <div className="w-16 h-16 border-4 border-purple-500 rounded-full animate-spin border-t-transparent">
-              <FaRegCreditCard className="mx-auto my-3 text-2xl text-purple-500" />
-            </div>
-          </div>
-        </>
-      );
-    }
+  // Error display configuration
+  const getErrorDisplay = () => {
+    const apiMessage = errorMessage || "Something went wrong. Try again.";
+    
+    const errorConfigs = {
+      PAYMENT_FAILED: {
+        title: "Lacag bixinta ma dhicin",
+        iconColor: "text-red-500",
+        titleColor: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200"
+      },
+      NO_BATTERY_AVAILABLE: {
+        title: "Ma jiro baytari diyaar ah",
+        iconColor: "text-yellow-500",
+        titleColor: "text-yellow-600",
+        bgColor: "bg-yellow-50",
+        borderColor: "border-yellow-200"
+      },
+  
+      network_error: {
+        title: "Network Error",
+        iconColor: "text-red-500",
+        titleColor: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200"
+      }
+    };
 
-    if (status === "success") {
-      return (
-        <>
-          <MdCheckCircle className="mx-auto mb-3 text-5xl text-green-500" />
-          <h2 className="mb-2 text-xl font-semibold text-green-600">Success</h2>
-          <p className="mb-2 text-sm text-gray-500">
-            Payment completed successfully!
-          </p>
-          {batteryInfo && (
-            <p className="text-sm text-gray-600">
-              🔓 Battery <strong>{batteryInfo.battery_id}</strong> unlocked from Slot{" "}
-              <strong>{batteryInfo.slot_id}</strong>.
-            </p>
-          )}
-        </>
-      );
-    }
+    const config = errorConfigs[reason] || {
+      title: "Payment Failed",
+      iconColor: "text-red-500",
+      titleColor: "text-red-600",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200"
+    };
 
-    if (errorMessage === "No available battery ≥ 60%") {
-      return (
-        <>
-          <MdError className="mx-auto mb-3 text-5xl text-yellow-500" />
-          <h2 className="mb-2 text-xl font-semibold text-yellow-600">
-            Ma jiro baytari diyaar ah
-          </h2>
-          <p className="mb-4 text-sm text-gray-500">
-            Waqtigan la joogo ma jiro powerbank buuxa oo diyaar ah. Fadlan isku day mar dambe.
-          </p>
-        </>
-      );
-    }
+    return {
+      ...config,
+      message: apiMessage
+    };
+  };
 
+  // Content rendering based on status
+  const renderProcessingContent = () => (
+    <>
+      <h2 className="mb-2 text-xl font-semibold text-gray-800">
+        Processing Payment
+      </h2>
+      <p className="mb-6 text-sm text-gray-400">
+        Please wait while we process your payment...
+      </p>
+      <div className="flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-purple-500 rounded-full animate-spin border-t-transparent">
+          <FaRegCreditCard className="mx-auto my-3 text-2xl text-purple-500" />
+        </div>
+      </div>
+    </>
+  );
+
+  const renderSuccessContent = () => (
+    <>
+      <MdCheckCircle className="mx-auto mb-3 text-5xl text-green-500" />
+      <h2 className="mb-2 text-xl font-semibold text-green-600">Success</h2>
+      <p className="mb-2 text-sm text-gray-500">
+        Payment completed successfully!
+      </p>
+      {batteryInfo && (
+        <p className="text-sm text-gray-600">
+          🔓 Battery <strong>{batteryInfo.battery_id}</strong> unlocked from Slot{" "}
+          <strong>{batteryInfo.slot_id}</strong>.
+        </p>
+      )}
+    </>
+  );
+
+  const renderErrorContent = () => {
+    const errorDisplay = getErrorDisplay();
+    
     return (
       <>
-        <MdError className="mx-auto mb-3 text-5xl text-red-500" />
-        <h2 className="mb-2 text-xl font-semibold text-red-600">
-          Payment Failed
+        <MdError className={`mx-auto mb-3 text-5xl ${errorDisplay.iconColor}`} />
+        <h2 className={`mb-2 text-xl font-semibold ${errorDisplay.titleColor}`}>
+          {errorDisplay.title}
         </h2>
-        <p className="mb-4 text-sm text-gray-500">
-          {errorMessage || "Something went wrong. Try again."}
-        </p>
+        <div className={`p-3 mb-4 text-sm text-gray-700 rounded-lg ${errorDisplay.bgColor} border ${errorDisplay.borderColor}`}>
+          {errorDisplay.message}
+        </div>
       </>
     );
+  };
+
+  const renderContent = () => {
+    switch (status) {
+      case "processing":
+        return renderProcessingContent();
+      case "success":
+        return renderSuccessContent();
+      case "failed":
+        return renderErrorContent();
+      default:
+        return null;
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white w-[90%] max-w-sm p-6 rounded-xl shadow-lg relative text-center">
+        {/* Close Button */}
         <button
-          className="absolute text-xl text-gray-500 top-3 right-3 hover:text-black"
+          className="absolute text-xl text-gray-500 top-3 right-3 hover:text-black transition-colors"
           onClick={onClose}
+          aria-label="Close modal"
         >
           &times;
         </button>
+        
+        {/* Modal Content */}
         {renderContent()}
       </div>
     </div>
   );
-}
+};
+
+export default ProcessingModal;
+

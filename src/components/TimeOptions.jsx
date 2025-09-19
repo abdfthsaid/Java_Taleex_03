@@ -37,7 +37,7 @@ const TimeOptions = ({ selectedAmount, selectTime }) => {
       ),
     },
     {
-      label: "Unlimited",
+      label: "2 Saac",
       amount: "$1.00",
       icon: <TfiTimer className=" w-12 h-12 mx-auto mb-2 text-pink-500" />,
     },

@@ -9,18 +9,41 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [reason, setReason] = useState("");
   const [batteryInfo, setBatteryInfo] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🛡️ Prevent double-click
 
   const [phone, setPhone] = useState("");
   const [agree1, setAgree1] = useState(true);
- 
+
   const [errors, setErrors] = useState({});
 
   const handlePayment = async () => {
+    // 🛡️ PREVENT DOUBLE-CLICK
+    if (isSubmitting) {
+      console.log("⚠️ Payment already in progress, ignoring click");
+      return;
+    }
+    setIsSubmitting(true);
     const number = phone;
     const amount = parseFloat(selectedAmount.replace("$", ""));
     let isSuccess = false;
 
     try {
+      // Check if phone number is blacklisted
+      const blacklistCheck = await axios.get(
+        `https://phase2backeend-ptsd.onrender.com/api/blacklist/check/${number}`,
+        { validateStatus: () => true }
+      );
+
+      if (blacklistCheck.data?.isBlacklisted) {
+        setProcessingStatus("failed");
+        setReason("BLACKLISTED");
+        setErrorMessage(
+          "Macamiil waxa kugu maqan battery hore fadlan soo celi midkaas"
+        );
+        setIsSubmitting(false); // 🛡️ Reset to allow retry
+        return;
+      }
+
       const res = await axios.post(
         "https://phase2backeend-ptsd.onrender.com/api/pay/03",
         {
@@ -38,27 +61,58 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
         setProcessingStatus("success");
         setBatteryInfo({ battery_id: data.battery_id, slot_id: data.slot_id });
         isSuccess = true;
-      } else if (data.success === false && data.reason === "no_battery") {
-        setProcessingStatus("failed");
-        setReason("no_battery");
-        setErrorMessage(data.message);
       } else if (data.error) {
-        // Handle specific error codes from the API
+        // Handle backend error messages
         setProcessingStatus("failed");
-        setReason(data.error.code);
-        setErrorMessage(data.error.message);
-        console.log(data.error.code);
+        const errorMsg = data.error;
+
+        // Detect specific error types from message
+        if (errorMsg.includes("No available battery")) {
+          setReason("NO_BATTERY_AVAILABLE");
+          setErrorMessage(
+            "Ma jiro baytari diyaar ah hadda, fadlan mar kale isku day"
+          );
+        } else if (errorMsg.includes("already have an active rental")) {
+          setReason("ALREADY_RENTED");
+          setErrorMessage(
+            "Waxaad hore u haysataa battery, fadlan soo celi midkaas ka hor intaadan mid kale kireysanin"
+          );
+        } else if (errorMsg.includes("battery is already rented")) {
+          setReason("BATTERY_TAKEN");
+          setErrorMessage(
+            "Battery-gan waa la kireystay, fadlan mar kale isku day"
+          );
+        } else if (errorMsg.includes("Payment not approved")) {
+          setReason("PAYMENT_FAILED");
+          setErrorMessage("Lacag bixinta ma dhicin, fadlan hubi numberkaaga");
+        } else if (
+          errorMsg.includes("blocked") ||
+          errorMsg.includes("blacklist")
+        ) {
+          setReason("BLACKLISTED");
+          setErrorMessage(
+            "Macamiil waxa kugu maqan battery hore fadlan soo celi midkaas"
+          );
+        } else {
+          setReason("PAYMENT_FAILED");
+          setErrorMessage(errorMsg);
+        }
       } else {
         // Fallback for other error cases
         setProcessingStatus("failed");
         setReason("unknown_error");
-        setErrorMessage(data.message || "Payment failed. Please try again.");
+        setErrorMessage("Khalad dhacay, fadlan mar kale isku day");
+      }
+      // 🛡️ Reset isSubmitting for failed payments (allow retry)
+      if (!isSuccess) {
+        setIsSubmitting(false);
       }
     } catch (err) {
       // Catch block will rarely be triggered now unless there is a network failure
       setProcessingStatus("failed");
       setReason("network_error");
       setErrorMessage("Network error, please try again.");
+      setIsSubmitting(false); // 🛡️ Reset on error
     }
 
     if (isSuccess) {
@@ -70,7 +124,8 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
         setBatteryInfo(null);
         setPhone("");
         setAgree1(false);
-      
+        setIsSubmitting(false); // 🛡️ Reset on success
+
         setErrors({});
         selectMethod(null);
       }, 3000);
@@ -87,7 +142,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
     if (!agree1) {
       newErrors.agree1 = "Fadlan ogolow shuruudaha koowaad";
     }
-  
+
     return newErrors;
   };
 

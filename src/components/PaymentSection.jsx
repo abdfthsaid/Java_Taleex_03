@@ -50,7 +50,7 @@ const PaymentSection = ({ selectedAmount, selectedMethod, selectMethod }) => {
       // Step 2: Process payment
       setStatusMessage("Diraya lacagta... Fadlan sug"); // Sending payment... Please wait
       const res = await axios.post(
-        "https://usersbackend-nxjy.onrender.com/api/pay/02",
+        "https://usersbackend-nxjy.onrender.com/api/pay/03",
         {
           phoneNumber: number,
           amount: amount,
